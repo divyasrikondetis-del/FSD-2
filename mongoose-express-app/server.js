@@ -7,10 +7,7 @@ dotenv.config();
 
 const app = express();
 
-// Render provides its own PORT.
-// Locally, the application uses port 5000.
 const PORT = process.env.PORT || 5000;
-
 const MONGO_URI = process.env.MONGO_URI;
 const DB_NAME = process.env.DB_NAME;
 
@@ -47,9 +44,7 @@ app.get("/", (req, res) => {
 // CREATE - Add a new movie
 app.post("/api/v1/movies", async (req, res) => {
     try {
-        const newMovie = req.body;
-
-        const result = await Movie.create(newMovie);
+        const result = await Movie.create(req.body);
 
         res.status(201).json({
             message: "Movie created successfully",
@@ -67,7 +62,6 @@ app.post("/api/v1/movies", async (req, res) => {
 app.get("/api/v1/movies", async (req, res) => {
     try {
         const { category } = req.query;
-
         const query = category ? { category } : {};
 
         const result = await Movie.find(query);
@@ -119,7 +113,6 @@ app.get("/api/v1/movies/:id", async (req, res) => {
 app.put("/api/v1/movies/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const updatedMovie = req.body;
 
         if (!mongoose.isValidObjectId(id)) {
             return res.status(400).json({
@@ -129,7 +122,7 @@ app.put("/api/v1/movies/:id", async (req, res) => {
 
         const result = await Movie.findByIdAndUpdate(
             id,
-            updatedMovie,
+            req.body,
             {
                 new: true,
                 runValidators: true
@@ -185,11 +178,11 @@ app.delete("/api/v1/movies/:id", async (req, res) => {
     }
 });
 
-// Start server only after MongoDB connects
+// Start server after MongoDB connection
 const startServer = async () => {
     try {
         if (!MONGO_URI) {
-            throw new Error("MONGO_URI is missing in environment variables");
+            throw new Error("MONGO_URI is missing");
         }
 
         await mongoose.connect(MONGO_URI, {
