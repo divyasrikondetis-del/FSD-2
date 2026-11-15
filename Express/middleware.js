@@ -37,8 +37,7 @@ const validatePatient = (req, res, next) => {
     }
     next();
 };
-const PORT = 5000;
-// CREATE
+const PORT = process.env.PORT || 5000;// CREATE
 app.post("/api/v1/patients", validatePatient, (req, res) => {
     const patient = {
         id: patients.length + 1,
