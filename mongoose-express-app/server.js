@@ -1,197 +1,210 @@
+
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const port = 5000;
-const mongoUri = process.env.MONGO_URI;
-const dbName = process.env.DB_NAME;
-
-mongoose.connect(mongoUri, { dbName: dbName })
-    .then(() => {
-        console.log("Connected to Mongo DB");
-    })
-    .catch((err) => {
-        console.log("Problem with connecting to MongoDB:", err);
-    });
-
-
-// Schema & Model
-
-const movieSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    director: String,
-    category: { type: String, required: true },
-    year: { type: Number, required: true }
-});
-
-const Movie = mongoose.model("Movie", movieSchema);
-
 const app = express();
 
+// Render provides its own PORT.
+// Locally, the application uses port 5000.
+const PORT = process.env.PORT || 5000;
+
+const MONGO_URI = process.env.MONGO_URI;
+const DB_NAME = process.env.DB_NAME;
+
+// Middleware
 app.use(express.json());
 
-
-// CRUD
-
-// Create POST
-
-app.post("/api/v1/movies", (req, res) => {
-
-    const newMovie = req.body;
-
-    Movie.create(newMovie)
-        .then((result) => {
-
-            res
-                .status(200)
-                .json({
-                    message: "Movie created successfully",
-                    data: result
-                });
-
-        })
-        .catch((err) => {
-
-            res
-                .status(500)
-                .json({
-                    message: "Movie creation failed"
-                });
-
-        });
+// Movie Schema
+const movieSchema = new mongoose.Schema({
+    title: {
+        type: String,
+        required: true
+    },
+    director: String,
+    category: {
+        type: String,
+        required: true
+    },
+    year: {
+        type: Number,
+        required: true
+    }
 });
 
+// Movie Model
+const Movie = mongoose.model("Movie", movieSchema);
 
-// Read movie
-
-app.get("/api/v1/movies", (req, res) => {
-
-    const { category } = req.query;
-
-    const query = category ? { category } : {};
-
-    Movie.find(query)
-        .then((result) => {
-
-            res
-                .status(200)
-                .json({
-                    message: "Movie fetched successfully",
-                    data: result
-                });
-
-        });
-
+// Home Route
+app.get("/", (req, res) => {
+    res.status(200).json({
+        message: "Welcome to Mongoose Express App"
+    });
 });
 
+// CREATE - Add a new movie
+app.post("/api/v1/movies", async (req, res) => {
+    try {
+        const newMovie = req.body;
 
-// Read movie by ID
+        const result = await Movie.create(newMovie);
 
-app.get("/api/v1/movies/:id", (req, res) => {
+        res.status(201).json({
+            message: "Movie created successfully",
+            data: result
+        });
+    } catch (err) {
+        res.status(400).json({
+            message: "Movie creation failed",
+            error: err.message
+        });
+    }
+});
 
-    const id = req.params.id;
+// READ - Get all movies or filter by category
+app.get("/api/v1/movies", async (req, res) => {
+    try {
+        const { category } = req.query;
 
-    Movie.findById(id)
-        .then((result) => {
+        const query = category ? { category } : {};
 
-            if (result) {
+        const result = await Movie.find(query);
 
-                res
-                    .status(200)
-                    .json({
-                        message: "Movie details fetched successfully",
-                        data: result
-                    });
+        res.status(200).json({
+            message: "Movie fetched successfully",
+            data: result
+        });
+    } catch (err) {
+        res.status(500).json({
+            message: "Movie fetching failed",
+            error: err.message
+        });
+    }
+});
 
-            } else {
+// READ - Get a movie by ID
+app.get("/api/v1/movies/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
 
-                res
-                    .status(404)
-                    .json({
-                        message: "Movie Not found"
-                    });
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                message: "Invalid movie ID"
+            });
+        }
 
+        const result = await Movie.findById(id);
+
+        if (!result) {
+            return res.status(404).json({
+                message: "Movie Not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Movie details fetched successfully",
+            data: result
+        });
+    } catch (err) {
+        res.status(500).json({
+            message: "Movie fetching failed",
+            error: err.message
+        });
+    }
+});
+
+// UPDATE - Update a movie by ID
+app.put("/api/v1/movies/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updatedMovie = req.body;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                message: "Invalid movie ID"
+            });
+        }
+
+        const result = await Movie.findByIdAndUpdate(
+            id,
+            updatedMovie,
+            {
+                new: true,
+                runValidators: true
             }
+        );
 
+        if (!result) {
+            return res.status(404).json({
+                message: "Movie Not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Movie updated successfully",
+            data: result
+        });
+    } catch (err) {
+        res.status(400).json({
+            message: "Movie update failed",
+            error: err.message
+        });
+    }
+});
+
+// DELETE - Delete a movie by ID
+app.delete("/api/v1/movies/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                message: "Invalid movie ID"
+            });
+        }
+
+        const result = await Movie.findByIdAndDelete(id);
+
+        if (!result) {
+            return res.status(404).json({
+                message: "Movie Not found"
+            });
+        }
+
+        res.status(200).json({
+            message: "Movie deleted successfully",
+            data: result
+        });
+    } catch (err) {
+        res.status(500).json({
+            message: "Movie deletion failed",
+            error: err.message
+        });
+    }
+});
+
+// Start server only after MongoDB connects
+const startServer = async () => {
+    try {
+        if (!MONGO_URI) {
+            throw new Error("MONGO_URI is missing in environment variables");
+        }
+
+        await mongoose.connect(MONGO_URI, {
+            dbName: DB_NAME
         });
 
-});
+        console.log("Connected to MongoDB");
 
-
-// Update movie by ID
-
-app.put("/api/v1/movies/:id", (req, res) => {
-
-    const id = req.params.id;
-
-    const updatedMovie = req.body;
-
-    Movie.findByIdAndUpdate(id, updatedMovie, { new: true })
-        .then((result) => {
-
-            if (result) {
-
-                res
-                    .status(200)
-                    .json({
-                        message: "Movie updated successfully",
-                        data: result
-                    });
-
-            } else {
-
-                res
-                    .status(404)
-                    .json({
-                        message: "Movie Not found"
-                    });
-
-            }
-
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
         });
+    } catch (err) {
+        console.error("Problem with connecting to MongoDB:", err.message);
+        process.exit(1);
+    }
+};
 
-});
-
-
-// Delete movie by ID
-
-app.delete("/api/v1/movies/:id", (req, res) => {
-
-    const { id } = req.params;
-
-    const deletedMovie = req.body;
-
-    Movie.findByIdAndDelete(id)
-        .then((result) => {
-
-            if (result) {
-
-                res
-                    .status(200)
-                    .json({
-                        message: "Movie deleted successfully",
-                        data: result
-                    });
-
-            } else {
-
-                res
-                    .status(404)
-                    .json({
-                        message: "Movie Not found"
-                    });
-
-            }
-
-        });
-
-});
-
-
-app.listen(port, () => {
-
-    console.log(`Server running on http://localhost:${port}`);
-
-});
+startServer();
