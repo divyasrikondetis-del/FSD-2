@@ -37,6 +37,17 @@
 
 19. EJS Template Engine - https://template-engine-js-app.onrender.com/
 
+
+## NODE.JS Projects
+
+20. File System Module - https://fsd-2-nodefah.vercel.app/api/run
+21. Hello World - https://fsd-2-nodefah.vercel.app/api/hello
+22. Manual Routing - https://fsd-2-nodefah.vercel.app/api/students
+23. HTTP Web Server - https://fsd-2-nodefah.vercel.app/api/web
+24. URL Module - https://fsd-2-nodefah.vercel.app/api/url
+25. Array CRUD (With Values) - https://fsd-2-nodefah.vercel.app/api/with-values
+
+
 ---
 
 **GitHub Repository:** https://github.com/divyasrikondetis-del/FSD-2
